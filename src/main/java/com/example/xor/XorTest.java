@@ -16,7 +16,7 @@ public class XorTest {
 
 
         File endecrypt = XorUtil.endecrypt(793,
-                new File("/Users/hss/java/XorUtil/src/main/resources/IMG_20180715_193426-PANO.jpg"),
+                new File("/Users/hss/1download/tmp-flipper使用2021-06-24 19.17.43.mov"),
                 true);
         File file2  = XorUtil.endecrypt(793,endecrypt,true);
         System.out.println("result: "+endecrypt.getName());

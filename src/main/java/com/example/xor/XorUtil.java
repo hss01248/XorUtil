@@ -22,6 +22,8 @@ public class XorUtil {
         return bytes;
     }
 
+    public static String filePrefix = "enx-";
+
     public static String endecrypt(int seed, String str) {//seed为加密种子，str为加密/解密对象
         byte[] bytes = null;
         boolean isBase64 = false;
@@ -43,17 +45,38 @@ public class XorUtil {
         return new String(bytes, 0, bytes.length, StandardCharsets.UTF_8);
     }
 
-    public static File endecrypt(int seed, File file, boolean dealFileName) {//seed为加密种子，str为加密/解密对象
+    public static boolean isEncrypted(String path){
+        if(path.startsWith(filePrefix)){
+            return true;
+        }
+        if(path.startsWith("b64-")){
+            return true;
+        }
+        return false;
+    }
+
+    public static File endecrypt(int seed, File file, boolean encryptFileName) {//seed为加密种子，str为加密/解密对象
         FileInputStream in = null;
         FileOutputStream out = null;
+        long start = System.currentTimeMillis();
         try {
             String sourceFileUrl = file.getAbsolutePath();
-            String targetFileUrl = new File(file.getParentFile(),
-                    dealFileName ? endecrypt(seed,
-                            file.getName().substring(0,file.getName().lastIndexOf(".")))
-                            +file.getName().substring(file.getName().lastIndexOf("."))
-                            : "enx-" + file.getName())
-                    .getAbsolutePath();
+            String fileName = file.getName();
+
+            String targetFileName = "";
+            if(encryptFileName){
+                targetFileName = endecrypt(seed,
+                        fileName.substring(0,fileName.lastIndexOf(".")))
+                        +fileName.substring(fileName.lastIndexOf("."));
+            }else {
+                if(fileName.startsWith(filePrefix)){
+                    targetFileName = fileName.substring(filePrefix.length());
+                }else {
+                    targetFileName = filePrefix+fileName;
+                }
+            }
+
+            String targetFileUrl = new File(file.getParentFile(), targetFileName).getAbsolutePath();
             in = new FileInputStream(sourceFileUrl);
             out = new FileOutputStream(targetFileUrl);
 
@@ -62,6 +85,7 @@ public class XorUtil {
 //将读取到的字节异或上一个数，加密输出
                 out.write(data ^ seed);
             }
+            System.out.println("xor cost :"+ ((System.currentTimeMillis() - start)/1000)+ "s, file length: "+ file.length()/1024+"kB");
             return new File(targetFileUrl);
         } catch (Throwable e) {
             e.printStackTrace();
