@@ -1,8 +1,6 @@
 package com.example.xor;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
@@ -16,7 +14,7 @@ public class AddByteUtil {
     // 要添加的字节数据
     static  byte dataToAdd = 0x66;
 
-    public static void addByte(String filePath){
+    public static String addByte(String filePath){
 
         long startTime = System.currentTimeMillis();
 
@@ -30,7 +28,7 @@ public class AddByteUtil {
             if(dataToAdd == firstByte){
                 raf.close();
                 System.out.println("已经是加密文件了: "+ file.getAbsolutePath());
-                return;
+                return filePath;
             }
             raf.seek(0);
             FileChannel channel = raf.getChannel();
@@ -55,14 +53,28 @@ public class AddByteUtil {
             raf.close();
             System.out.println("添加字节成功, cost: "+(System.currentTimeMillis() - startTime)
                     +"ms, filesize: "+ file.length()+"b,original file size : "+originalFileSize+",new size: "+file.length());
+        return filePath;
         } catch (Throwable e) {
             e.printStackTrace();
+            return filePath;
         }
     }
 
     public static File createTmpOriginalFile(String sourceFilePath){
 
         File file = new File(sourceFilePath);
+        try {
+            FileInputStream inputStream = new FileInputStream(file);
+            int read = inputStream.read();
+            inputStream.close();
+            if(read != dataToAdd){
+                System.out.println("不是加密文件 " +"sourceFilePath : "+ file.getAbsolutePath());
+                return file;
+            }
+        } catch (Exception e) {
+           e.printStackTrace();
+           return file;
+        }
         File destinationFile0 = new File(file.getParentFile(),"tmp-"+file.getName());
         System.out.println("文件信息 " +"sourceFilePath filesize: "+ file.length()+",destinationFile size: "+destinationFile0.length());
         if(destinationFile0.exists()  && destinationFile0.length() == file.length()-1){
