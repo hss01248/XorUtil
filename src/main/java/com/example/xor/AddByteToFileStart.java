@@ -8,8 +8,8 @@ package com.example.xor;
 public class AddByteToFileStart {
     public static void main(String[] args) {
         String filePath = "/Users/hss/1download/flipper使用2021-06-24 19.17.43.mov";
-        AddByteUtil.addByte(filePath);
-        AddByteUtil.createTmpOriginalFile(filePath);
+        String path2 = AddByteUtil.addByte(filePath);
+        AddByteUtil.createTmpOriginalFile(null,path2);
     }
 }
 

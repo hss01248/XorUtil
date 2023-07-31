@@ -13,6 +13,8 @@ import java.nio.channels.FileChannel;
 public class AddByteUtil {
     // 要添加的字节数据
     static  byte dataToAdd = 0x66;
+    static  boolean useFileChannel = false;
+    //useFileChannel = true: 2011ms  false:1317ms
 
     public static String addByte(String filePath){
 
@@ -22,6 +24,7 @@ public class AddByteUtil {
             // 打开文件
             File file = new File(filePath);
             long originalFileSize = file.length();
+            long newFileSize = 0 ;
             RandomAccessFile raf = new RandomAccessFile(file, "rw");
             // 读取文件的第一个字节
             int firstByte = raf.read();
@@ -30,37 +33,65 @@ public class AddByteUtil {
                 System.out.println("已经是加密文件了: "+ file.getAbsolutePath());
                 return filePath;
             }
-            raf.seek(0);
-            FileChannel channel = raf.getChannel();
-            // 读取原始数据
-            ByteBuffer buffer = ByteBuffer.allocate((int) file.length());
-            channel.read(buffer);
-            buffer.flip();
-            // 创建新的ByteBuffer来添加数据
-            ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1);
-            // 在开头添加一个字节
-            newBuffer.put(dataToAdd);
-            // 将原始数据写入新的ByteBuffer
-            newBuffer.put(buffer);
-            // 切换新的ByteBuffer为读模式
-            newBuffer.flip();
-            // 清空文件内容
-            channel.truncate(0);
-            // 将新的ByteBuffer写入文件
-            channel.write(newBuffer);
-            // 关闭通道和文件
-            channel.close();
-            raf.close();
+            if(useFileChannel){
+                raf.seek(0);
+                FileChannel channel = raf.getChannel();
+                // 读取原始数据
+                ByteBuffer buffer = ByteBuffer.allocate((int) file.length());
+                channel.read(buffer);
+                buffer.flip();
+                // 创建新的ByteBuffer来添加数据
+                ByteBuffer newBuffer = ByteBuffer.allocate(buffer.capacity() + 1);
+                // 在开头添加一个字节
+                newBuffer.put(dataToAdd);
+                // 将原始数据写入新的ByteBuffer
+                newBuffer.put(buffer);
+                // 切换新的ByteBuffer为读模式
+                newBuffer.flip();
+                // 清空文件内容
+                channel.truncate(0);
+                // 将新的ByteBuffer写入文件
+                channel.write(newBuffer);
+                // 关闭通道和文件
+                channel.close();
+                raf.close();
+            }else {
+                raf.close();
+                byte[] bytes = new byte[]{(byte) dataToAdd};
+                File file1 = new File(file.getParentFile(),file.getName()+".33");
+                filePath = file1.getAbsolutePath();
+                if(!file1.exists()){
+                    file1.createNewFile();
+                }
+                InputStream inputStream = new FileInputStream(file);
+                ByteArrayInputStream inputStream1 = new ByteArrayInputStream(bytes);
+                SequenceInputStream newInputStream = new SequenceInputStream(inputStream1,inputStream);
+                BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file1));
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while ((bytesRead = newInputStream.read(buffer)) != -1) {
+                    bos.write(buffer, 0, bytesRead);
+                }
+                bos.flush();
+
+                newInputStream.close();
+                bos.close();
+                file.delete();
+                newFileSize = file1.length();
+            }
+
             System.out.println("添加字节成功, cost: "+(System.currentTimeMillis() - startTime)
-                    +"ms, filesize: "+ file.length()+"b,original file size : "+originalFileSize+",new size: "+file.length());
-        return filePath;
+                    +"ms, original file size : "+originalFileSize+",new size: "+newFileSize);
+            return filePath;
         } catch (Throwable e) {
             e.printStackTrace();
             return filePath;
         }
     }
 
-    public static File createTmpOriginalFile(String sourceFilePath){
+    public static File createTmpOriginalFile(File tmpDir,String sourceFilePath){
 
         File file = new File(sourceFilePath);
         try {
@@ -72,10 +103,13 @@ public class AddByteUtil {
                 return file;
             }
         } catch (Exception e) {
-           e.printStackTrace();
-           return file;
+            e.printStackTrace();
+            return file;
         }
-        File destinationFile0 = new File(file.getParentFile(),"tmp-"+file.getName());
+        if(tmpDir == null){
+            tmpDir = file.getParentFile();
+        }
+        File destinationFile0 = new File(tmpDir,"tmp-"+file.getName());
         System.out.println("文件信息 " +"sourceFilePath filesize: "+ file.length()+",destinationFile size: "+destinationFile0.length());
         if(destinationFile0.exists()  && destinationFile0.length() == file.length()-1){
             System.out.println("临时解密文件已经存在: "+ destinationFile0.getAbsolutePath());
@@ -96,11 +130,43 @@ public class AddByteUtil {
             destinationChannel.transferFrom(sourceChannel, 0, sourceFileSize - 1);
 
             System.out.println("文件已成功复制并移除了开始的字节,cost: "+(System.currentTimeMillis() - startTime)
-                    +"ms, filesize: "+ sourceFileSize/1024+"kB");
+                    +"ms, filesize: "+ sourceFileSize+"B");
             return destinationFile0;
         } catch (Throwable e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public static  void clearTmpDir(File tmpDir) {
+        if(tmpDir == null){
+            return;
+        }
+        if(!tmpDir.exists()){
+            return;
+        }
+        if(tmpDir.isFile()){
+            return;
+        }
+        File[] files = tmpDir.listFiles();
+        if(files == null || files.length <=0){
+            return;
+        }
+        for (File file : files) {
+            file.delete();
+        }
+        tmpDir.delete();
+    }
+
+    public static void hideDir(File dir) {
+        if(dir == null){
+            return;
+        }
+        if(!dir.exists()){
+            return;
+        }
+        if(dir.isFile()){
+            return;
         }
     }
 }
