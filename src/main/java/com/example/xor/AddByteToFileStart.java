@@ -13,7 +13,7 @@ public class AddByteToFileStart {
         String path2 = AddByteUtil.addByte(filePath);
         AddByteUtil.createTmpOriginalFile(null,path2);*/
 
-        AddByteUtil.hideDirAndInnerFiles(new File("/Users/hss/1download/"));
+        DirOperationUtil.hideDirAndInnerFiles(new File("/Users/hss/1download/"));
     }
 }
 
